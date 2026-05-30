@@ -156,7 +156,7 @@ for s in df_freq["set"].unique():
     subset = FreqAbs.abstract_frequency(subset, predictor_columns, ws, fs)
     df_freq_list.append(subset)
 
-df_freq = pd.concat(df_freq_list).set_index("epoch (ms)")
+df_freq = pd.concat(df_freq_list).set_index("epoch (ms)", drop=True)
 # --------------------------------------------------------------
 # Dealing with overlapping windows
 # --------------------------------------------------------------
