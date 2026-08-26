@@ -1,11 +1,14 @@
 import numpy as np
 import pandas as pd
+import pickle
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from LearningAlgorithms import ClassificationAlgorithms
 import seaborn as sns
 import itertools
 from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV
 
 # Plot settings
 plt.style.use("fivethirtyeight")
@@ -340,14 +343,13 @@ plt.show()
 
 # 2
 
-
 (
     class_train_y,
     class_test_y,
     class_train_prob_y,
     class_test_prob_y,
 ) = learner.random_forest(
-    X_train[selected_features], y_train, X_test[feature_set_4], gridsearch=False
+    X_train[feature_set_4], y_train, X_test[feature_set_4], gridsearch=False
 )
 
 accuracy = accuracy_score(y_test, class_test_y)
@@ -380,5 +382,89 @@ plt.show()
 
 
 # --------------------------------------------------------------
-# Try a simpler model with the selected features
+# Train model on all the data
 # --------------------------------------------------------------
+
+# Hyperparameters using random search for random forest
+
+param_grid = {
+    "n_estimators": [50, 100, 200, 250],
+    "max_features": ["sqrt", "log2", None],
+    "max_depth": [None, 10, 20, 30],
+    "min_samples_split": [2, 5, 10],
+    "min_samples_leaf": [1, 2, 4],
+    "bootstrap": [True, False],
+}
+
+rf = RandomForestClassifier(random_state=42)
+
+random_search = RandomizedSearchCV(
+    estimator=rf,
+    param_distributions=param_grid,
+    n_iter=100,
+    cv=5,
+    verbose=2,
+    random_state=42,
+    n_jobs=-1,
+)
+
+random_search.fit(X_train[feature_set_4], y_train)
+
+print("Best Parameters:", random_search.best_params_)
+
+
+best_params = {
+    "n_estimators": 200,
+    "min_samples_split": 2,
+    "min_samples_leaf": 1,
+    "max_features": "sqrt",
+    "max_depth": 20,
+    "bootstrap": False,
+}
+
+rf_tuned = RandomForestClassifier(**best_params, random_state=42)
+rf_tuned.fit(X_train[feature_set_4], y_train)
+
+class_test_y = rf_tuned.predict(X_test[feature_set_4])
+class_test_prob_y = pd.DataFrame(
+    rf_tuned.predict_proba(X_test[feature_set_4]), columns=rf_tuned.classes_
+)
+
+accuracy = accuracy_score(y_test, class_test_y)
+
+classes = class_test_prob_y.columns
+
+cm = confusion_matrix(y_test, class_test_y, labels=classes)
+
+plt.figure(figsize=(10, 10))
+plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+plt.title("Confusion matrix")
+plt.colorbar()
+tick_marks = np.arange(len(classes))
+plt.xticks(tick_marks, classes, rotation=45)
+plt.yticks(tick_marks, classes)
+
+thresh = cm.max() / 2.0
+for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+    plt.text(
+        j,
+        i,
+        format(cm[i, j]),
+        horizontalalignment="center",
+        color="white" if cm[i, j] > thresh else "black",
+    )
+plt.ylabel("True label")
+plt.xlabel("Predicted label")
+plt.grid(False)
+plt.show()
+
+
+X_final = x[feature_set_4]
+y_final = y
+
+final_model = RandomForestClassifier(**best_params, random_state=42)
+
+final_model.fit(X_final, y_final)
+
+with open("../../models/rf_model", "wb") as file:
+    pickle.dump(final_model, file)
