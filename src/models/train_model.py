@@ -479,9 +479,6 @@ plt.show()
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train[feature_set_4])
 
-le = LabelEncoder()
-y_train_encoded = pd.Series(le.fit_transform(y_train.values.ravel()))
-y_test_encoded = pd.Series(le.transform(y_test.values.ravel()))
 
 param_grid_nn = {
     "hidden_layer_sizes": [(50,), (100,), (50, 50), (100, 50)],
@@ -511,9 +508,6 @@ random_search_nn = RandomizedSearchCV(
     n_jobs=-1,
 )
 
-label_encoder = LabelEncoder()
-
-y_train_encoded = label_encoder.fit_transform(y_train)
 
 random_search_nn.fit(X_train_scaled, y_train_encoded)
 
@@ -532,6 +526,10 @@ best_param_nn = {
     "alpha": 0.0001,
     "activation": "tanh",
 }
+
+le = LabelEncoder()
+y_train_encoded = pd.Series(le.fit_transform(y_train.values.ravel()))
+y_test_encoded = pd.Series(le.transform(y_test.values.ravel()))
 
 
 (
@@ -574,7 +572,6 @@ plt.ylabel("True label")
 plt.xlabel("Predicted label")
 plt.grid(False)
 plt.show()
-
 
 # Export RF model
 

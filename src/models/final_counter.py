@@ -278,7 +278,6 @@ def count_reps_and_exercise(csv_path, model_path):
     for s in df_cluster["set"].unique():
         subset = df_cluster[df_cluster["set"] == s]
 
-        # Get the most common prediction in this set
         majority_vote = subset["predicted_exercise"].mode()[0]
         final_predictions[s] = majority_vote
 
