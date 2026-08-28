@@ -422,7 +422,19 @@ best_params = {
     "bootstrap": False,
 }
 
-rf_tuned = RandomForestClassifier(**best_params, random_state=42)
+custom_weights = {
+    "bench": 1.0,
+    "dead": 1.0,
+    "ohp": 2.5,
+    "rest": 1.0,
+    "row": 1.0,
+    "squat": 1.0,
+}
+
+
+rf_tuned = RandomForestClassifier(
+    **best_params, class_weight=custom_weights, random_state=42
+)
 rf_tuned.fit(X_train[feature_set_4], y_train)
 
 class_test_y = rf_tuned.predict(X_test[feature_set_4])
@@ -462,7 +474,9 @@ plt.show()
 X_final = x[feature_set_4]
 y_final = y
 
-final_model = RandomForestClassifier(**best_params, random_state=42)
+final_model = RandomForestClassifier(
+    **best_params, class_weight=custom_weights, random_state=42
+)
 
 final_model.fit(X_final, y_final)
 
