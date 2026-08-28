@@ -9,6 +9,10 @@ import itertools
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
 
 # Plot settings
 plt.style.use("fivethirtyeight")
@@ -470,6 +474,109 @@ plt.xlabel("Predicted label")
 plt.grid(False)
 plt.show()
 
+# Neural network Hyperparameters
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train[feature_set_4])
+
+le = LabelEncoder()
+y_train_encoded = pd.Series(le.fit_transform(y_train.values.ravel()))
+y_test_encoded = pd.Series(le.transform(y_test.values.ravel()))
+
+param_grid_nn = {
+    "hidden_layer_sizes": [(50,), (100,), (50, 50), (100, 50)],
+    "activation": ["tanh", "relu"],
+    "solver": ["sgd", "adam"],
+    "alpha": [0.0001, 0.001, 0.01, 0.1],
+    "learning_rate": ["constant", "adaptive"],
+    "learning_rate_init": [0.001, 0.01, 0.1],
+    "batch_size": ["auto", 32, 64, 128],
+    "momentum": [0.9, 0.95, 0.99],
+    "max_iter": [500, 1000],
+    "early_stopping": [True],
+    "n_iter_no_change": [10, 20],
+}
+
+
+nn = MLPClassifier(random_state=42)
+
+
+random_search_nn = RandomizedSearchCV(
+    estimator=nn,
+    param_distributions=param_grid_nn,
+    n_iter=50,
+    cv=5,
+    verbose=2,
+    random_state=42,
+    n_jobs=-1,
+)
+
+label_encoder = LabelEncoder()
+
+y_train_encoded = label_encoder.fit_transform(y_train)
+
+random_search_nn.fit(X_train_scaled, y_train_encoded)
+
+print("Best Parameters:", random_search_nn.best_params_)
+
+best_param_nn = {
+    "solver": "adam",
+    "n_iter_no_change": 20,
+    "momentum": 0.9,
+    "max_iter": 500,
+    "learning_rate_init": 0.01,
+    "learning_rate": "constant",
+    "hidden_layer_sizes": (100,),
+    "early_stopping": True,
+    "batch_size": 128,
+    "alpha": 0.0001,
+    "activation": "tanh",
+}
+
+
+(
+    class_train_y,
+    class_test_y,
+    class_train_prob_y,
+    class_test_prob_y,
+) = learner.feedforward_neural_network(
+    X_train[selected_features],
+    y_train_encoded,
+    X_test[selected_features],
+    gridsearch=False,
+    **best_param_nn
+)
+
+accuracy = accuracy_score(y_test_encoded, class_test_y)
+
+classes = le.classes_
+
+cm = confusion_matrix(y_test_encoded, class_test_y)
+
+plt.figure(figsize=(10, 10))
+plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+plt.title("Confusion matrix")
+plt.colorbar()
+tick_marks = np.arange(len(classes))
+plt.xticks(tick_marks, classes, rotation=45)
+plt.yticks(tick_marks, classes)
+
+thresh = cm.max() / 2.0
+for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+    plt.text(
+        j,
+        i,
+        format(cm[i, j]),
+        horizontalalignment="center",
+        color="white" if cm[i, j] > thresh else "black",
+    )
+plt.ylabel("True label")
+plt.xlabel("Predicted label")
+plt.grid(False)
+plt.show()
+
+
+# Export RF model
 
 X_final = x[feature_set_4]
 y_final = y
@@ -482,3 +589,6 @@ final_model.fit(X_final, y_final)
 
 with open("../../models/rf_model", "wb") as file:
     pickle.dump(final_model, file)
+
+
+# Export NN model

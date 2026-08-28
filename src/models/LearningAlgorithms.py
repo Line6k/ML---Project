@@ -93,6 +93,7 @@ class ClassificationAlgorithms:
         learning_rate="adaptive",
         gridsearch=True,
         print_model_details=False,
+        **kwargs
     ):
 
         if gridsearch:
@@ -129,6 +130,7 @@ class ClassificationAlgorithms:
                 max_iter=max_iter,
                 learning_rate=learning_rate,
                 alpha=alpha,
+                **kwargs
             )
 
         # Fit the model
