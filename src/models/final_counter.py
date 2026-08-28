@@ -13,8 +13,9 @@ from TemporalAbstraction import NumericalAbstraction
 from FrequencyAbstraction import FourierTransformation
 from sklearn.cluster import KMeans
 
-csv_path = "../../data/raw/MetaMotion/A-row-heavy_MetaWear_2019-01-14T15.04.06.123_C42732BE255C_Accelerometer_12.500Hz_1.4.4.csv"
+csv_path = "../../data/insert_here/*.csv"
 model_path = "../../models/rf_model"
+
 
 
 def read_data_from_files(files):
@@ -153,7 +154,7 @@ def count_reps_and_exercise(csv_path, model_path):
 
     data_resampled["set"] = data_resampled["set"].astype("int")
 
-    df = data_resampled
+    df = data_resampled.copy()
 
     outlier_columns = list(df.columns[:6])
 
@@ -170,7 +171,7 @@ def count_reps_and_exercise(csv_path, model_path):
 
             n_outliers = len(dataset) - len(dataset[col].dropna())
 
-    df = outlier_removed_df
+    df = outlier_removed_df.copy()
 
     predictor_columns = list(df.columns[:6])
 
@@ -185,10 +186,6 @@ def count_reps_and_exercise(csv_path, model_path):
 
         df.loc[(df["set"] == s), "duration"] = duration.seconds
 
-    duration_df = df.groupby(["category"])["duration"].mean()
-
-    duration_df.iloc[0] / 5
-    duration_df.iloc[1] / 10
 
     df_lowpass = df.copy()
     LowPass = LowPassFilter()
@@ -286,6 +283,52 @@ def count_reps_and_exercise(csv_path, model_path):
         final_predictions[s] = majority_vote
 
         print(f"Set {s} classified as: {majority_vote}")
+
+
+    df = data_resampled.copy()
+    df = df[df["label"] != "rest"]
+
+    acc_r = df["acc_x"] ** 2 + df["acc_y"] ** 2 + df["acc_z"] ** 2
+    gyr_r = df["gyr_x"] ** 2 + df["gyr_y"] ** 2 + df["gyr_z"] ** 2
+
+    df["acc_r"] = np.sqrt(acc_r)
+    df["gyr_r"] = np.sqrt(gyr_r)
+
+
+    fs = 1000 / 200
+    LowPass = LowPassFilter()
+    final_results = {} 
+
+    for s, predicted_label in final_predictions.items():
+        subset = df[df["set"] == s]
+
+        column = "acc_r"
+        cutoff = 0.4
+
+        if predicted_label == "squat":
+            cutoff = 0.35
+        elif predicted_label == "row":
+            cutoff = 0.65
+            col = "gyr_x"
+            column = "gyr_x"
+        elif predicted_label == "ohp":
+            cutoff = 0.35
+
+        data = LowPass.low_pass_filter(
+            dataset,
+            col=column,
+            sampling_frequency=fs,
+            cutoff_frequency=cutoff,
+            order=10,
+        )
+
+        indexes = argrelextrema(data[column + "_lowpass"].values, np.greater)
+            peaks = data.iloc[indexes]
+
+
+
+
+
 
     return final_predictions
 
