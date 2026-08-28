@@ -12,10 +12,11 @@ from DataTransformation import LowPassFilter, PrincipalComponentAnalysis
 from TemporalAbstraction import NumericalAbstraction
 from FrequencyAbstraction import FourierTransformation
 from sklearn.cluster import KMeans
+from scipy.signal import argrelextrema
+import matplotlib.pyplot as plt
 
 csv_path = "../../data/insert_here/*.csv"
 model_path = "../../models/rf_model"
-
 
 
 def read_data_from_files(files):
@@ -186,7 +187,6 @@ def count_reps_and_exercise(csv_path, model_path):
 
         df.loc[(df["set"] == s), "duration"] = duration.seconds
 
-
     df_lowpass = df.copy()
     LowPass = LowPassFilter()
 
@@ -284,7 +284,6 @@ def count_reps_and_exercise(csv_path, model_path):
 
         print(f"Set {s} classified as: {majority_vote}")
 
-
     df = data_resampled.copy()
     df = df[df["label"] != "rest"]
 
@@ -294,10 +293,9 @@ def count_reps_and_exercise(csv_path, model_path):
     df["acc_r"] = np.sqrt(acc_r)
     df["gyr_r"] = np.sqrt(gyr_r)
 
-
     fs = 1000 / 200
     LowPass = LowPassFilter()
-    final_results = {} 
+    final_results = {}
 
     for s, predicted_label in final_predictions.items():
         subset = df[df["set"] == s]
@@ -315,7 +313,7 @@ def count_reps_and_exercise(csv_path, model_path):
             cutoff = 0.35
 
         data = LowPass.low_pass_filter(
-            dataset,
+            subset.copy(),
             col=column,
             sampling_frequency=fs,
             cutoff_frequency=cutoff,
@@ -323,14 +321,22 @@ def count_reps_and_exercise(csv_path, model_path):
         )
 
         indexes = argrelextrema(data[column + "_lowpass"].values, np.greater)
-            peaks = data.iloc[indexes]
+        peak_rows = data.iloc[indexes]
 
+        fig, ax = plt.subplots(figsize=(10, 4))
+        plt.plot(data[f"{column}_lowpass"], label="Filtered Signal")
+        plt.plot(peak_rows[f"{column}_lowpass"], "o", color="red", label="Reps")
+        ax.set_ylabel(f"{column}_lowpass")
+        plt.title(f"Set {s}: {predicted_label.title()} - {len(peak_rows)} Reps")
+        plt.legend()
+        plt.show()
 
+        rep_count = len(peak_rows)
 
+        final_results[s] = {"exercise": predicted_label, "reps": rep_count}
 
-
-
-    return final_predictions
+        final_results[s] = {"exercise": predicted_label, "reps": rep_count}
+    return final_results
 
 
 print(count_reps_and_exercise(csv_path, model_path))
