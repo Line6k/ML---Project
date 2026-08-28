@@ -4,4 +4,5 @@ A machine learning pipeline that leverages smartwatch sensor data (accelerometer
 to classify barbell exercises and track repetitions.
 
 How to use:
-Insert gyroscope and accelorometer data into data/insert_here. Then simply run the function count_reps_and_exercise.
+
+Insert gyroscope and accelorometer data into ../data/insert_here. Then simply run the function count_reps_and_exercise.
